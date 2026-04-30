@@ -1,5 +1,5 @@
 import { db } from "../firebase.js";
-import { collection, addDoc, getDocs } from "firebase/firestore";
+import { collection, doc, addDoc, getDocs, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { generarDescripcion } from "../services/aiService.js";
 
 const offersCollection = collection(db, "offers");
@@ -15,25 +15,29 @@ export async function getOffers(req, res) {
 }
 
 export async function createOffer(req, res) {
-  const { titulo, descripcion, precio, usuarioId, categoriaId } = req.body;
+  try {
+    const { titulo, descripcion, precio, usuarioId, categoriaId } = req.body;
 
-  let finalDescripcion = descripcion;
-  if (!descripcion || descripcion.trim() === "") {
-    finalDescripcion = await generarDescripcion(titulo, precio);
+    let finalDescripcion = descripcion;
+    if (!descripcion || descripcion.trim() === "") {
+      finalDescripcion = await generarDescripcion(titulo, precio);
+    }
+
+    const docRef = await addDoc(offersCollection, {
+      titulo,
+      descripcion: finalDescripcion,
+      precio,
+      usuarioId,
+      categoriaId,
+      estado: "activo",
+      fechaInicio: new Date(),
+      fechaFin: new Date()
+    });
+
+    res.json({ id: docRef.id, titulo, descripcion: finalDescripcion, precio });
+  } catch (error) {
+    res.status(500).json({ error: "Error al crear la oferta", details: error.message });
   }
-
-  const docRef = await addDoc(offersCollection, {
-    titulo,
-    descripcion: finalDescripcion,
-    precio,
-    usuarioId,
-    categoriaId,
-    estado: "activa",
-    fechaInicio: new Date(),
-    fechaFin: new Date()
-  });
-
-  res.json({ id: docRef.id, titulo, descripcion: finalDescripcion, precio });
 }
 
 export async function updateOffer(req, res) {
@@ -47,9 +51,11 @@ export async function updateOffer(req, res) {
       return res.status(404).json({ error: "Oferta no encontrada" });
     }
 
-    // Si el campo descripción está vacío, generamos una nueva con IA
     if (!data.descripcion || data.descripcion.trim() === "") {
-      data.descripcion = await generarDescripcion(data.titulo || snapshot.data().titulo, data.precio || snapshot.data().precio);
+      data.descripcion = await generarDescripcion(
+        data.titulo || snapshot.data().titulo,
+        data.precio || snapshot.data().precio
+      );
     }
 
     await updateDoc(offerRef, data);
@@ -80,8 +86,8 @@ export async function suggestOfferDescription(req, res) {
   try {
     const { titulo, precio } = req.body;
 
-    if (!titulo || !precio) {
-      return res.status(400).json({ error: "Se requiere título y precio para generar la sugerencia" });
+    if (!titulo) {
+      return res.status(400).json({ error: "Se requiere el título para generar la sugerencia" });
     }
 
     const descripcion = await generarDescripcion(titulo, precio);

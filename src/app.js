@@ -8,6 +8,7 @@ import authRouter from "./routes/auth.js";
 import offersRouter from "./routes/offers.js";
 import categoriesRouter from "./routes/categories.js";
 import purchasesRouter from "./routes/purchases.js";
+import usersRouter from "./routes/users.js";
 
 // Confiuration 
 dotenv.config();
@@ -22,6 +23,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/offers", offersRouter);
 app.use("/api/categories", categoriesRouter);
 app.use("/api/purchases", purchasesRouter);
+app.use("/api/users", usersRouter);
 
 
 // Start server
