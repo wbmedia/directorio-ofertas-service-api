@@ -1,6 +1,6 @@
 import { db } from "../firebase.js";
 import { collection, doc, addDoc, getDocs, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
-import { generarDescripcion } from "../services/aiService.js";
+import { generarDescripcion, generarOfertaDesdeImagen } from "../services/aiService.js";
 
 const offersCollection = collection(db, "offers");
 
@@ -94,5 +94,29 @@ export async function suggestOfferDescription(req, res) {
     res.json({ sugerencia: descripcion });
   } catch (error) {
     res.status(500).json({ error: "Error al generar la descripción", details: error.message });
+  }
+}
+
+export async function autoGenerateOffer(req, res) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "Se requiere una imagen" });
+    }
+
+    const buffer = req.file.buffer;
+
+    const data = await generarOfertaDesdeImagen(buffer);
+
+    res.json({
+      titulo: data.titulo,
+      descripcion: data.descripcion,
+      categoria: data.categoria,
+      precio: data.precio,
+      keywords: data.keywords,
+    });
+
+  } catch (error) {
+    console.error("Error IA:", error);
+    res.status(500).json({ error: "Error al generar oferta automáticamente" });
   }
 }
